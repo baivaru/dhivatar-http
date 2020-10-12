@@ -24,13 +24,12 @@ def home():
 
 def hex_to_rgb(h):
     if h is not None:
-        print(ImageColor.getrgb(f"#{h}"))
         return ImageColor.getrgb(f"#{h}")
     else:
         return None
 
 
-@app.get("/api/")
+@app.get("/avatar/")
 def do_the_thing(name: str, size: int = 150, background: str = None, color: str = None):
     if size <= 1000:
         image = Avatar().generate(name, size=size, bg_color=hex_to_rgb(background), font_color=hex_to_rgb(color))
