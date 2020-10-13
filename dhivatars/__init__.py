@@ -20,10 +20,8 @@ class Avatar(object):
     def generate(cls, string, size=150, bg_color=None, font_color=(255, 255, 255), font_name="Mv_Eamaan_XP.otf",
                  filetype="PNG"):
         render_size = max(size, Avatar.MIN_RENDER_SIZE)
-
-        if bg_color is None:
+        if not bg_color:
             bg_color = cls._background_color(string)
-
         image = Image.new('RGB', (render_size, render_size), bg_color)
         draw = ImageDraw.Draw(image)
         font = cls._font(render_size, font_name)
