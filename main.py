@@ -3,6 +3,7 @@ from configparser import ConfigParser
 from PIL import ImageColor
 from fastapi import FastAPI
 from starlette.responses import StreamingResponse
+from starlette.middleware.cors import CORSMiddleware
 
 from dhivatars import Avatar
 
@@ -17,7 +18,16 @@ github = config.get('project', 'github')
 domain = config.get('project', 'fqdn', fallback=None)
 
 # FastAPI instance
-app = FastAPI()
+app = FastAPI(
+    title=project_name, description="A FastAPI for Dhivehi Avatars"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 
 def deploy_url(url):
