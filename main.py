@@ -1,12 +1,11 @@
 import hashlib
 import os
 from configparser import ConfigParser
-from io import BytesIO
 
 from PIL import ImageColor
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, FileResponse
 
 from dhivatars import Avatar
 
@@ -93,15 +92,13 @@ async def avatar(name: str, size: int = 150, background: str = None, color: str 
         file_name = f'caches/{size}/{hashed_string}.png'
 
         if os.path.exists(file_name):
-            image = get_file(file_name)
+            return FileResponse(file_name, media_type='image/png')
         else:
-            if size <= 1000:
-                image = Avatar().generate(name, size=size, bg_color=hex_to_rgb(background),
-                                          font_color=hex_to_rgb(color))
-            else:
-                image = Avatar().generate(name, bg_color=hex_to_rgb(background), font_color=hex_to_rgb(color))
+            image = Avatar().generate(name, size=size, bg_color=hex_to_rgb(background),
+                                      font_color=hex_to_rgb(color))
 
-        save_file(image, file_name)
+            save_file(image, file_name)
+            return StreamingResponse(image, media_type='image/png')
 
     else:
         if size <= 1000:
@@ -109,7 +106,7 @@ async def avatar(name: str, size: int = 150, background: str = None, color: str 
         else:
             image = Avatar().generate(name, bg_color=hex_to_rgb(background), font_color=hex_to_rgb(color))
 
-    return StreamingResponse(image, media_type='image/png')
+        return StreamingResponse(image, media_type='image/png')
 
 
 def generate_hash(name: str):
@@ -121,10 +118,3 @@ def save_file(bytes_file, filename):
     """ Save the file"""
     with open(filename, 'wb+') as f:
         f.write(bytes_file.getbuffer())
-
-
-def get_file(filename):
-    """ Read the file from cache"""
-    with open(filename, 'rb') as f:
-        buf = BytesIO(f.read())
-        return buf
