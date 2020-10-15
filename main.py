@@ -30,7 +30,7 @@ def deploy_url(url):
 
 
 @app.get('/')
-def home():
+async def home():
     return {
         'app': project_name,
         'description': 'Generate user avatar placeholders that are unique to the user\'s name, but in Dhivehi!',
@@ -62,7 +62,7 @@ def hex_to_rgb(h):
 
 
 @app.get("/api/")
-def do_the_thing(name: str, size: int = 150, background: str = None, color: str = None):
+async def do_the_thing(name: str, size: int = 150, background: str = None, color: str = None):
     if size <= 1000:
         image = Avatar().generate(name, size=size, bg_color=hex_to_rgb(background), font_color=hex_to_rgb(color))
     else:
