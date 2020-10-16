@@ -1,9 +1,10 @@
 import hashlib
 import os
+import time
 from configparser import ConfigParser
 
 from PIL import ImageColor
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse, FileResponse
 
@@ -41,6 +42,15 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
 
 def deploy_url(url):
@@ -86,19 +96,40 @@ def hex_to_rgb(h):
 
 @app.get("/api/")
 async def avatar(name: str, size: int = 150, background: str = None, color: str = None):
+    image = get_image(name, size, background, color)
+    if type(image) is str:
+        return FileResponse(image, media_type='image/png')
+    else:
+        return StreamingResponse(image, media_type='image/png')
+
+
+# @app.get("/raw/")
+# async def raw(name: str, size: int = 150, background: str = None, color: str = None):
+#     image = get_image(name, size, background, color)
+#     if type(image) is str:
+#         data = open(image, "r").read().encode('utf-8')
+#         return data
+#         encoded = base64.b64encode(data)
+#         return encoded
+#     else:
+#         print(image.raw)
+#         # return base64.b64encode(image.read())
+
+
+def get_image(name: str, size: int = 150, background: str = None, color: str = None):
     if cache and size in allowed_caches and background is None and color is None:
         name_and_size = f"{name}{size}"
         hashed_string = generate_hash(name_and_size)
         file_name = f'caches/{size}/{hashed_string}.png'
 
         if os.path.exists(file_name):
-            return FileResponse(file_name, media_type='image/png')
+            return file_name
         else:
             image = Avatar().generate(name, size=size, bg_color=hex_to_rgb(background),
                                       font_color=hex_to_rgb(color))
 
             save_file(image, file_name)
-            return StreamingResponse(image, media_type='image/png')
+            return image
 
     else:
         if size <= 1000:
@@ -106,7 +137,7 @@ async def avatar(name: str, size: int = 150, background: str = None, color: str 
         else:
             image = Avatar().generate(name, bg_color=hex_to_rgb(background), font_color=hex_to_rgb(color))
 
-        return StreamingResponse(image, media_type='image/png')
+        return image
 
 
 def generate_hash(name: str):
