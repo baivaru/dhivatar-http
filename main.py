@@ -2,7 +2,7 @@ import hashlib
 import os
 import time
 from configparser import ConfigParser
-
+from datetime import datetime
 from PIL import ImageColor
 from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
@@ -50,6 +50,14 @@ async def add_process_time_header(request: Request, call_next):
     response = await call_next(request)
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
+    return response
+
+
+@app.middleware("http")
+async def add_access_control_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["access-control-max-age"] = str(3600)
+    response.headers["cache-control"] = 'max-age=1814400'
     return response
 
 
