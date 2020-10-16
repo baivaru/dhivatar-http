@@ -1,8 +1,9 @@
+import base64
 import hashlib
 import os
 import time
 from configparser import ConfigParser
-from datetime import datetime
+
 from PIL import ImageColor
 from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
@@ -23,13 +24,15 @@ cache = config.get('project', 'cache', fallback=False)
 
 allowed_caches = [150, 200, 300]
 
+folders = ['caches', 'tmp']
 # Create cache folders if they don't exist
-if not os.path.exists('caches'):
-    os.makedirs('caches')
+for path in folders:
+    if not os.path.exists(path):
+        os.makedirs(path)
 
-for x in allowed_caches:
-    if not os.path.exists(f'caches/{x}'):
-        os.makedirs(f'caches/{x}')
+for cache_size in allowed_caches:
+    if not os.path.exists(f'caches/{cache_size}'):
+        os.makedirs(f'caches/{cache_size}')
 
 # FastAPI instance
 app = FastAPI(
@@ -111,17 +114,14 @@ async def avatar(name: str, size: int = 150, background: str = None, color: str 
         return StreamingResponse(image, media_type='image/png')
 
 
-# @app.get("/raw/")
-# async def raw(name: str, size: int = 150, background: str = None, color: str = None):
-#     image = get_image(name, size, background, color)
-#     if type(image) is str:
-#         data = open(image, "r").read().encode('utf-8')
-#         return data
-#         encoded = base64.b64encode(data)
-#         return encoded
-#     else:
-#         print(image.raw)
-#         # return base64.b64encode(image.read())
+@app.get("/raw/")
+async def raw(name: str, size: int = 150, background: str = None, color: str = None):
+    image = get_image(name, size, background, color)
+
+    if type(image) is str:
+        return get_base_64(image)
+    else:
+        return await raw(name, size, background, color)
 
 
 def get_image(name: str, size: int = 150, background: str = None, color: str = None):
@@ -157,3 +157,10 @@ def save_file(bytes_file, filename):
     """ Save the file"""
     with open(filename, 'wb+') as f:
         f.write(bytes_file.getbuffer())
+
+
+def get_base_64(filename):
+    """ Exactly the thing you put in your img src tag"""
+    with open(filename, 'rb') as f:
+        data = base64.b64encode(f.read())
+        return 'data:image/png;base64,' + data.decode()
