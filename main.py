@@ -11,7 +11,7 @@ from starlette.responses import StreamingResponse, FileResponse
 
 from dhivatars import Avatar
 
-# Read from config file
+# Environment Variables
 config_file = "env.ini"
 config = ConfigParser()
 config.read(config_file)
@@ -22,14 +22,18 @@ github = config.get('project', 'github')
 domain = config.get('project', 'fqdn', fallback=None)
 cache = config.get('project', 'cache', fallback=False)
 
+# Define allowed cache sizes.
 allowed_caches = [150, 200, 300]
 
+# Define folders that are required for the app
 folders = ['caches', 'tmp']
-# Create cache folders if they don't exist
+
+# Create required folders if they do not exist
 for path in folders:
     if not os.path.exists(path):
         os.makedirs(path)
 
+# Create cache folders if they don't exist
 for cache_size in allowed_caches:
     if not os.path.exists(f'caches/{cache_size}'):
         os.makedirs(f'caches/{cache_size}')
@@ -39,6 +43,7 @@ app = FastAPI(
     title=project_name, description="A FastAPI for Dhivehi Avatars"
 )
 
+# Allow all origins CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -49,6 +54,9 @@ app.add_middleware(
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
+    """
+    Middleware to include response processing time.
+    """
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
@@ -58,6 +66,9 @@ async def add_process_time_header(request: Request, call_next):
 
 @app.middleware("http")
 async def add_access_control_headers(request: Request, call_next):
+    """
+    Middleware to try to force client-side caching
+    """
     response = await call_next(request)
     response.headers["access-control-max-age"] = str(3600)
     response.headers["cache-control"] = 'max-age=1814400'
@@ -66,9 +77,7 @@ async def add_access_control_headers(request: Request, call_next):
 
 def deploy_url(url):
     """
-    Construct urls for the correct domain when deploying.
-    :param url:
-    :return: str
+    Construct urls for the correct domain during deployment.
     """
     return f"{domain}/{url}" if domain else f"http://localhost:8000/{url}"
 
@@ -96,13 +105,6 @@ async def home():
             }
         ]
     }
-
-
-def hex_to_rgb(h):
-    if h is not None:
-        return ImageColor.getrgb(f"#{h}")
-    else:
-        return None
 
 
 @app.get("/api/")
@@ -148,19 +150,35 @@ def get_image(name: str, size: int = 150, background: str = None, color: str = N
         return image
 
 
+def hex_to_rgb(h):
+    """
+    Convert hexadecimal color to RGB
+    """
+    if h is not None:
+        return ImageColor.getrgb(f"#{h}")
+    else:
+        return None
+
+
 def generate_hash(name: str):
-    """ Generate md5 hash of the incoming request name. """
+    """
+    Generate md5 hash of the incoming request name.
+    """
     return hashlib.md5(name.encode('utf-8')).hexdigest()
 
 
 def save_file(bytes_file, filename):
-    """ Save the file"""
+    """
+    Save the file
+    """
     with open(filename, 'wb+') as f:
         f.write(bytes_file.getbuffer())
 
 
 def get_base_64(filename):
-    """ Exactly the thing you put in your img src tag"""
+    """
+    Exactly the thing you put in your img src tag
+    """
     with open(filename, 'rb') as f:
         data = base64.b64encode(f.read())
         return 'data:image/png;base64,' + data.decode()
