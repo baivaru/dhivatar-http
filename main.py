@@ -1,11 +1,17 @@
 import base64
+from datetime import datetime
 import hashlib
+import json
 import os
 import time
 from configparser import ConfigParser
 
 from PIL import ImageColor
 from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.background import BackgroundTask
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse, FileResponse
 
@@ -23,7 +29,7 @@ domain = config.get('project', 'fqdn', fallback=None)
 cache = config.get('project', 'cache', fallback=False)
 
 # Define allowed cache sizes.
-allowed_caches = [150, 200, 300]
+allowed_caches = [64, 150, 200]
 
 # Define folders that are required for the app
 folders = ['caches', 'tmp']
@@ -42,6 +48,10 @@ for cache_size in allowed_caches:
 app = FastAPI(
     title=project_name, description="A FastAPI for Dhivehi Avatars"
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
 
 # Allow all origins CORS Middleware
 app.add_middleware(
@@ -82,43 +92,61 @@ def deploy_url(url):
     return f"{domain}/{url}" if domain else f"http://localhost:8000/{url}"
 
 
-@app.get('/')
-async def home():
-    return {
-        'app': project_name,
-        'description': 'Generate user avatar placeholders that are unique to the user\'s name, but in Dhivehi!',
+async def get_hits_per_day(date_key):
+    with open('hits.json', 'r') as f:
+        data: dict = json.loads(f.read())
+        return data[date_key]
+
+
+async def store_hits_per_day():
+    with open('hits.json', 'r') as f:
+        data: dict = json.loads(f.read())
+        key = f"{datetime.now().year}-{datetime.now().month}-{datetime.now().day}"
+        if key in data:
+            data[key] = data[key] + 1
+        else:
+            data[key] = 1
+
+        with open('hits.json', 'w') as wf:
+            wf.write(json.dumps(data))
+
+
+@app.get('/', response_class=HTMLResponse, include_in_schema=False)
+async def index(request: Request):
+    date_key = f"{datetime.now().year}-{datetime.now().month}-{datetime.now().day}"
+    return templates.TemplateResponse("index.html", {
+        "request": request,
         'version': version,
-        'project': github,
         'docs': deploy_url('docs'),
-        'examples': [
-            {
-                'all_features': deploy_url('api/?name=%DE%84%DE%A6%DE%87%DE%A8%DE%88%DE%A6%DE%83'
-                                           '%DE%AA&size=300&background=7e6b5c&color=872361'),
-                'size': deploy_url('api/?name=%DE%84%DE%A6%DE%87%DE%A8%DE%88%DE%A6%DE%83%DE%AA'
-                                   '&size=300'),
-                'background_color': deploy_url('api/?name=%DE%84%DE%A6%DE%87%DE%A8%DE%88%DE%A6%DE%83'
-                                               '%DE%AA&background=7e6b5c'),
-                'text_color': deploy_url('api/?name=%DE%84%DE%A6%DE%87%DE%A8%DE%88%DE%A6%DE%83'
-                                         '%DE%AA&color=872361'),
-                'multiple_names': deploy_url('api/?name=%DE%87%DE%A6%DE%80%DE%AA%DE%89%DE%A6%DE%8B%DE%AA%20%DE%89%DE'
-                                             '%AA%DE%80%DE%A6%DE%87%DE%B0%DE%89%DE%A6%DE%8B%DE%AA&size=300')
-            }
-        ]
-    }
+        'project': github,
+        'year': datetime.now().year,
+        'hits_per_day': await get_hits_per_day(date_key)
+    })
 
 
 @app.get("/api/")
-async def avatar(name: str, size: int = 150, background: str = None, color: str = None):
+async def avatar(name: str, size: int = 64, background: str = None, color: str = None):
+    """
+    Generate your image using your name and other attributes here.
+
+    Size: Up to 1000, any more and you get defaulted to 150.
+
+    Colors: Should be in hex codes, but without the #.
+    """
+    task = BackgroundTask(store_hits_per_day)
+
     image = get_image(name, size, background, color)
     if type(image) is str:
-        return FileResponse(image, media_type='image/png')
+        return FileResponse(image, media_type='image/png', background=task)
     else:
-        return StreamingResponse(image, media_type='image/png')
+        return StreamingResponse(image, media_type='image/png', background=task)
 
 
 @app.get("/raw/")
-async def raw(name: str, size: int = 150, background: str = None, color: str = None):
+async def raw(name: str, size: int = 64, background: str = None, color: str = None):
     image = get_image(name, size, background, color)
+
+    await store_hits_per_day()
 
     if type(image) is str:
         return get_base_64(image)
@@ -126,7 +154,7 @@ async def raw(name: str, size: int = 150, background: str = None, color: str = N
         return await raw(name, size, background, color)
 
 
-def get_image(name: str, size: int = 150, background: str = None, color: str = None):
+def get_image(name: str, size: int = 64, background: str = None, color: str = None):
     if cache and size in allowed_caches and background is None and color is None:
         name_and_size = f"{name}{size}"
         hashed_string = generate_hash(name_and_size)
