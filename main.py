@@ -85,17 +85,17 @@ async def add_access_control_headers(request: Request, call_next):
     return response
 
 
-@app.middleware("http")
-async def print_headers(request: Request, call_next):
-    """
-    Middleware to try to force client-side caching
-    """
-    response = await call_next(request)
-
-    if request.url == deploy_url(''):
-        print(request.headers)
-
-    return response
+# @app.middleware("http")
+# async def print_headers(request: Request, call_next):
+#     """
+#     Middleware to try to force client-side caching
+#     """
+#     response = await call_next(request)
+#
+#     if request.url == deploy_url(''):
+#         print(request.headers)
+#
+#     return response
 
 
 def deploy_url(url):
