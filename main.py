@@ -93,7 +93,7 @@ async def print_headers(request: Request, call_next):
     response = await call_next(request)
 
     if request.url == deploy_url(''):
-        print(response.headers)
+        print(request.headers)
 
     return response
 
