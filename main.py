@@ -1,10 +1,10 @@
 import base64
-from datetime import datetime
 import hashlib
 import json
 import os
 import time
 from configparser import ConfigParser
+from datetime import datetime
 
 from PIL import ImageColor
 from fastapi import FastAPI, Request
@@ -85,6 +85,19 @@ async def add_access_control_headers(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def print_headers(request: Request, call_next):
+    """
+    Middleware to try to force client-side caching
+    """
+    response = await call_next(request)
+
+    if request.url == deploy_url(''):
+        print(response.headers)
+
+    return response
+
+
 def deploy_url(url):
     """
     Construct urls for the correct domain during deployment.
@@ -95,7 +108,10 @@ def deploy_url(url):
 async def get_hits_per_day(date_key):
     with open('hits.json', 'r') as f:
         data: dict = json.loads(f.read())
-        return data[date_key]
+        if date_key in data:
+            return data[date_key]
+        else:
+            return 0
 
 
 async def store_hits_per_day():
@@ -129,7 +145,7 @@ async def avatar(name: str, size: int = 64, background: str = None, color: str =
     """
     Generate your image using your name and other attributes here.
 
-    Size: Up to 1000, any more and you get defaulted to 150.
+    Size: Up to 1000, any more and you get defaulted to 64.
 
     Colors: Should be in hex codes, but without the #.
     """
@@ -144,6 +160,15 @@ async def avatar(name: str, size: int = 64, background: str = None, color: str =
 
 @app.get("/raw/")
 async def raw(name: str, size: int = 64, background: str = None, color: str = None):
+    """
+    Generate your image using your name and other attributes here.
+
+    Size: Up to 1000, any more and you get defaulted to 64.
+
+    Colors: Should be in hex codes, but without the #.
+
+    You will receive a base64 encode of the image, that is ready to be used in any HTML img tag.
+    """
     image = get_image(name, size, background, color)
 
     await store_hits_per_day()
