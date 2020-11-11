@@ -137,8 +137,6 @@ async def get_chart_data():
         for x in latest_10:
             data_10.append(str(data[x]))
 
-        print(latest_10)
-
         return latest_10, data_10
 
 
