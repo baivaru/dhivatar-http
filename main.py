@@ -127,16 +127,36 @@ async def store_hits_per_day():
             wf.write(json.dumps(data))
 
 
+async def get_chart_data():
+    with open('hits.json', 'r') as f:
+        data = json.loads(f.read())
+        data_keys = sorted(data)
+        latest_10 = data_keys[-10:]
+
+        data_10 = []
+        for x in latest_10:
+            data_10.append(str(data[x]))
+
+        print(latest_10)
+
+        return latest_10, data_10
+
+
 @app.get('/', response_class=HTMLResponse, include_in_schema=False)
 async def index(request: Request):
     date_key = f"{datetime.now().year}-{datetime.now().month}-{datetime.now().day}"
+
+    chart_categories, chart_data = await get_chart_data()
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         'version': version,
         'docs': deploy_url('docs'),
         'project': github,
         'year': datetime.now().year,
-        'hits_per_day': await get_hits_per_day(date_key)
+        'hits_per_day': await get_hits_per_day(date_key),
+        'chart_data': chart_data,
+        'chart_categories': chart_categories
     })
 
 
