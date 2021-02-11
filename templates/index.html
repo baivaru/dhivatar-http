@@ -18,7 +18,7 @@
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.22.2/apexcharts.min.css" integrity="sha512-H6KANMpZQKsK9c09UqdcQv02JTiZ/hMVwxkcbDLrp125CR884wwEdnWDm+Yuo6tihuC/cizLYWAjMZi0xAfGig==" crossorigin="anonymous" />
-    <link rel="icon" href="{{ url_for('static', path='/logo.svg') }}">
+    <link rel="icon" href="{{ url_for('assets', path='/logo.svg') }}">
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-121184359-4"></script>
@@ -57,13 +57,13 @@
 <body class="leading-normal tracking-normal text-gray-900" style="font-family: 'Source Sans Pro', sans-serif;">
 
 
-<div class="h-screen pb-14 bg-right bg-cover" style="background-image:url({{ url_for('static', path='bg.svg') }})">
+<div class="h-screen pb-14 bg-right bg-cover" style="background-image:url({{ url_for('assets', path='bg.svg') }})">
     <!--Nav-->
     <div class="w-full container mx-auto p-6">
         <div class="w-full flex items-center justify-between">
             <a class="flex items-center no-underline hover:no-underline font-bold text-2xl lg:text-4xl"
-               style="color:#256b93" href="#">
-                <img class="h-10 fill-current text-indigo-600 pr-2" src="{{ url_for('static', path='/logo.svg') }}">
+               style="color:#256b93" href="/">
+                <img class="h-10 fill-current text-indigo-600 pr-2" src="{{ url_for('assets', path='/logo.svg') }}">
                 Dhivatars
             </a>
 
@@ -90,7 +90,7 @@
             </a>
             <div class="flex w-full justify-center md:justify-start pb-24 lg:pb-0 fade-in">
                 ަ<a href="{{ docs }}">
-                <img src="{{ url_for('static', path='/swagger_logo.svg') }}" class="h-12 pr-4 bounce-top-icons">
+                <img src="{{ url_for('assets', path='/swagger_logo.svg') }}" class="h-12 pr-4 bounce-top-icons">
             </a>
             </div>
 
@@ -100,7 +100,7 @@
 
         <!--Right Col-->
         <div class="w-full xl:w-3/5 py-6 overflow-y-hidden">
-            <img class="w-5/6 mx-auto lg:mr-0 slide-in-bottom" src="{{ url_for('static', path='/devices.svg') }}">
+            <img class="w-5/6 mx-auto lg:mr-0 slide-in-bottom" src="{{ url_for('assets', path='/devices.svg') }}">
         </div>
 
         <div class="w-full py-12">

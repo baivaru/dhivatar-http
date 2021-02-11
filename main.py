@@ -49,7 +49,7 @@ app = FastAPI(
     title=project_name, description="A FastAPI for Dhivehi Avatars"
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 templates = Jinja2Templates(directory="templates")
 
